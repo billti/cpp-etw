@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <Windows.h>
 #include <evntprov.h>
@@ -42,7 +42,7 @@ enum EtwFieldType : UCHAR {
 class EtwEvents {
 public:
 	EtwEvents(const GUID& provider_guid, const std::string& provider_name) :
-			provider(provider_guid), name(provider_name), 
+			provider(provider_guid), name(provider_name),
 			reg_handle(0), traits_size(0), provider_traits(nullptr),
 			is_enabled(false), current_level(0), current_keywords(0) {
 		ULONG result = EventRegister(&provider, EtwEvents::EnableCallback, this, &reg_handle);
@@ -72,7 +72,7 @@ public:
 	// For use by this class before calling EventWrite
 	bool IsEventEnabled(const EVENT_DESCRIPTOR* pEventDesc) {
 		if (reg_handle == 0 || this->is_enabled == false) return false;
-		return (pEventDesc->Level <= this->current_level) && 
+		return (pEventDesc->Level <= this->current_level) &&
 			   (pEventDesc->Keyword == 0 || ((pEventDesc->Keyword & this->current_keywords) != 0));
 	}
 
@@ -91,11 +91,11 @@ public:
 		pDesc->Type = EVENT_DATA_DESCRIPTOR_TYPE_EVENT_METADATA;
 	}
 
-	ULONG LogEvent(const EVENT_DESCRIPTOR* pEventDesc, 
+	ULONG LogEvent(const EVENT_DESCRIPTOR* pEventDesc,
 			EVENT_DATA_DESCRIPTOR* pDataDesc, ULONG desc_count) {
 		if (reg_handle == 0) return ERROR_SUCCESS;
 		return EventWriteTransfer(reg_handle, pEventDesc,
-			NULL /* ActivityId */, NULL /* RelatedActivityId */, 
+			NULL /* ActivityId */, NULL /* RelatedActivityId */,
 			desc_count, pDataDesc);
 	}
 

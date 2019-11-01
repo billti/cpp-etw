@@ -1,4 +1,4 @@
-﻿#include "v8-etw.h"
+#include "v8-etw.h"
 
 namespace v8 {
 namespace etw {

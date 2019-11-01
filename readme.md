@@ -25,7 +25,7 @@ The event descriptor to describe the event id, severity level, flags, etc.
 is declared similarly:
 
 ```cpp
-constexpr static auto event_desc = 
+constexpr static auto event_desc =
     EventDescriptor(102, kLevelInfo, 0 /*keyword*/, kOpCodeStart);
 ```
 

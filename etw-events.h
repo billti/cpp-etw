@@ -4,6 +4,7 @@
 #include <evntprov.h>
 
 #include <string>
+#include <vector>
 
 #include "etw-metadata.h"
 
@@ -47,8 +48,6 @@ class EtwEvents {
         provider(provider_guid),
         name(provider_name),
         reg_handle(0),
-        provider_traits(nullptr),
-        traits_size(0),
         current_level(0),
         current_keywords(0) {
     ULONG result =
@@ -63,22 +62,14 @@ class EtwEvents {
     // Copy the provider name, prefixed by a UINT16 length, to a buffer.
     // The string in the buffer should be null terminated.
     // See https://docs.microsoft.com/en-us/windows/win32/etw/provider-traits
-    traits_size = static_cast<UINT16>(sizeof(UINT16) + name.size() + 1);
-    provider_traits = new char[traits_size];
-    *reinterpret_cast<UINT16*>(provider_traits) = traits_size;
-    name.copy(provider_traits + sizeof(UINT16), name.size(), 0);
-    provider_traits[traits_size - 1] = 0x00;
+    size_t traits_bytes = sizeof(UINT16) + name.size() + 1;
+    traits.resize(traits_bytes, 0x00);  // Trailing byte will already be null
+    *reinterpret_cast<UINT16*>(traits.data()) = traits_bytes;
+    name.copy(traits.data() + sizeof(UINT16), name.size(), 0);
   }
 
   ~EtwEvents() {
     EventUnregister(reg_handle);
-    is_enabled = false;
-    reg_handle = 0;
-    delete[] provider_traits;
-    provider_traits = nullptr;
-    traits_size = 0;
-    current_level = 0;
-    current_keywords = 0;
   }
 
   // For use by this class before calling EventWrite
@@ -98,7 +89,7 @@ class EtwEvents {
 
   void SetMetaDescriptors(EVENT_DATA_DESCRIPTOR* pDesc, const void* pMetadata,
                           size_t size) {
-    EventDataDescCreate(pDesc, provider_traits, traits_size);
+    EventDataDescCreate(pDesc, traits.data(), traits.size());
     pDesc->Type = EVENT_DATA_DESCRIPTOR_TYPE_PROVIDER_METADATA;
     ++pDesc;
     EventDataDescCreate(pDesc, pMetadata, static_cast<ULONG>(size));
@@ -180,8 +171,7 @@ class EtwEvents {
   const GUID provider;
   const std::string name;
   REGHANDLE reg_handle;
-  char* provider_traits;
-  UINT16 traits_size;
+  std::vector<char> traits;
   UCHAR current_level;
   ULONGLONG current_keywords;
 };

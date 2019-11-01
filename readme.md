@@ -74,6 +74,9 @@ from the command line.
    assembly instructions inline into the instrumented function, none of which
    were loops or calls. Most of this was to prepare the data descriptors for
    the event instance specific data for `EventWrite`, which seems unavoidable.
+   If the provider is not enabled (likely most of the time), only 2 to 4
+   assembly instructions are executed before jumping over the rest of the
+   event logging code.
 
 ## TODO
 

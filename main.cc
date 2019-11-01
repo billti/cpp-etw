@@ -66,20 +66,20 @@ int main(int argc, char** argv) {
 
   printf("enabled   disabled\n");
   for (int i = 0; i < 40; ++i) {
-    LONGLONG count;
+    LONGLONG duration;
 
     // Constant seed to ensure the same work on each run
     srand(51);
     total_elements = 0;
     v8_provider->is_enabled = true;
-    count = sort_array();
-    printf("%8d  ", static_cast<int>(count));
+    duration = sort_array();
+    printf("%8d  ", static_cast<int>(duration));
 
     srand(51);
     total_elements = 0;
     v8_provider->is_enabled = false;
-    count = sort_array();
-    printf("%8d\n", static_cast<int>(count));
+    duration = sort_array();
+    printf("%8d\n", static_cast<int>(duration));
   }
   return 0;
 }

@@ -21,26 +21,24 @@ namespace etw {
 const UCHAR kManifestFreeChannel = 11;
 
 // Taken from the TRACE_LEVEL_* macros in <evntrace.h>
-enum EtwLevel : UCHAR {
-  kLevelNone = 0,
-  kLevelFatal = 1,
-  kLevelError = 2,
-  kLevelWarning = 3,
-  kLevelInfo = 4,
-  kLevelVerbose = 5
-};
+const UCHAR kLevelNone = 0;
+const UCHAR kLevelFatal = 1;
+const UCHAR kLevelError = 2;
+const UCHAR kLevelWarning = 3;
+const UCHAR kLevelInfo = 4;
+const UCHAR kLevelVerbose = 5;
 
 // Taken from the EVENT_TRACE_TYPE_* macros in <evntrace.h>
-enum EtwOpCode : UCHAR { kOpCodeInfo = 0, kOpCodeStart = 1, kOpCodeStop = 2 };
+const UCHAR kOpCodeInfo = 0;
+const UCHAR kOpCodeStart = 1;
+const UCHAR kOpCodeStop = 2;
 
 // See "enum TlgIn_t" in <TraceLoggingProvider.h>
-enum EtwFieldType : UCHAR {
-  kTypeAnsiStr = 2,
-  kTypeInt8 = 3,
-  kTypeInt32 = 7,
-  kTypeDouble = 12,
-  kTypePointer = 21
-};
+const UCHAR kTypeAnsiStr = 2;
+const UCHAR kTypeInt8 = 3;
+const UCHAR kTypeInt32 = 7;
+const UCHAR kTypeDouble = 12;
+const UCHAR kTypePointer = 21;
 
 class EtwEvents {
  public:

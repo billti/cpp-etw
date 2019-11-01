@@ -25,7 +25,7 @@ Alternatively, use a tool such as PerfView or WPR to configure and record traces
 */
 
 // {c6c2b481-a1d8-5a54-638c-2dd5fd3eec2e}
-constexpr GUID v8_provider_guid = { 0xc6c2b481, 0xa1d8, 0x5a54, 0x63, 0x8c, 0x2d, 0xd5, 0xfd, 0x3e, 0xec, 0x2e };
+constexpr GUID v8_provider_guid = { 0xc6c2b481, 0xa1d8, 0x5a54, {0x63, 0x8c, 0x2d, 0xd5, 0xfd, 0x3e, 0xec, 0x2e}};
 constexpr char v8_provider_name[] = "v8js";
 
 class V8EtwProvider : public EtwEvents {

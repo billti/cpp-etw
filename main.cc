@@ -19,7 +19,7 @@ LONGLONG sort_array() {
 	QueryPerformanceFrequency(&Frequency);
 	QueryPerformanceCounter(&StartingTime);
 
-	v8_provider->Initialized();
+  v8_provider->Initialized();
 
 	for (int i = 0; i < 10000; ++i) {
 		// Returns a value between 0 and RAND_MAX (0x7fff i.e. 32767)

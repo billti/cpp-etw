@@ -12,14 +12,14 @@ template<size_t N>
 struct str_bytes {
 	template<std::size_t... I>
 	constexpr str_bytes(char const(&s)[N], std::index_sequence<I...>)
-		: size(N), bytes{ s[I]... } { };
+		: bytes{ s[I]... }, size(N) { };
 
 	// Concatenate two str_bytes
 	template<std::size_t s1, std::size_t s2,
 		std::size_t... I1, std::size_t... I2>
 		constexpr str_bytes(const str_bytes<s1>& b1, std::index_sequence<I1...>,
 			const str_bytes<s2>& b2, std::index_sequence<I2...>)
-		: size(N), bytes{ b1.bytes[I1]..., b2.bytes[I2]... } { }
+		: bytes{ b1.bytes[I1]..., b2.bytes[I2]... }, size(N) { }
 
 	char bytes[N];
 	size_t size;
@@ -28,7 +28,7 @@ struct str_bytes {
 // Specialization for 0 (base case when joining fields)
 template<>
 struct str_bytes<0> {
-	constexpr str_bytes() : size(0), bytes{} {}
+	constexpr str_bytes() : bytes{}, size(0) {}
 	char bytes[1]; // MSVC doesn't like an array of 0 bytes
 	size_t size;
 };

@@ -10,6 +10,13 @@
 namespace v8 {
 namespace etw {
 
+// GCC/Clang supported builtin for branch hints
+#if defined(__GNUC__)
+#define LIKELY(condition) (__builtin_expect(!!(condition), 1))
+#else
+#define LIKELY(condition) (condition)
+#endif
+
 // All "manifest-free" events should go to channel 11 by default
 const UCHAR kManifestFreeChannel = 11;
 
@@ -42,13 +49,20 @@ enum EtwFieldType : UCHAR {
 class EtwEvents {
 public:
 	EtwEvents(const GUID& provider_guid, const std::string& provider_name) :
-			provider(provider_guid), name(provider_name),
-			reg_handle(0), traits_size(0), provider_traits(nullptr),
-			is_enabled(false), current_level(0), current_keywords(0) {
+			is_enabled(false),
+			provider(provider_guid),
+      name(provider_name),
+			reg_handle(0),
+      provider_traits(nullptr),
+      traits_size(0),
+      current_level(0),
+      current_keywords(0) {
 		ULONG result = EventRegister(&provider, EtwEvents::EnableCallback, this, &reg_handle);
 		if (result != ERROR_SUCCESS) {
 			// TODO: Should this fail silently somehow? ETW isn't critical.
-			throw new std::exception("Failed to register provider");
+			//throw new std::exception("Failed to register provider");
+      reg_handle = 0;
+      return;
 		}
 
 		// Copy the provider name, prefixed by a UINT16 length, to a buffer.
@@ -63,15 +77,18 @@ public:
 
 	~EtwEvents() {
 		EventUnregister(reg_handle);
+    is_enabled = false;
 		reg_handle = 0;
 		delete[] provider_traits;
 		provider_traits = nullptr;
 		traits_size = 0;
+    current_level = 0;
+    current_keywords = 0;
 	}
 
 	// For use by this class before calling EventWrite
 	bool IsEventEnabled(const EVENT_DESCRIPTOR* pEventDesc) {
-		if (reg_handle == 0 || this->is_enabled == false) return false;
+		if (LIKELY(this->is_enabled == false || reg_handle == 0)) return false;
 		return (pEventDesc->Level <= this->current_level) &&
 			   (pEventDesc->Keyword == 0 || ((pEventDesc->Keyword & this->current_keywords) != 0));
 	}
@@ -177,6 +194,8 @@ constexpr auto EventDescriptor(USHORT id, UCHAR level = 0, ULONGLONG keyword = 0
 		keyword
 	};
 }
+
+#undef LIKELY
 
 } // namespace etw
 } // namespace v8

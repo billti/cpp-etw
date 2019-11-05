@@ -49,13 +49,13 @@ As the first 2 lines are `constexpr` variables, these result in no runtime code
 and are evaluated entirely at compile time.
 
 The code in `etw-events.h` declares the `EtwEvents` class, which your provider
-should derive from. See the example implementation in the `v8-etw.*` files. The
-`v8-etw.cc` file also shows code to ensure only a single instance of the ETW
+should derive from. See the example implementation in the `example-etw-provider.*` files. The
+`example-etw-provider.cc` file also shows code to ensure only a single instance of the ETW
 provider is instantiated. (It does not demonstrate unregistering currently).
 
 The `main.cc` file shows running a simple experiment for measuring perf impact.
 
-Comments near the top of `v8-etw.h` indicate how to start/stop a simple trace
+Comments near the top of `example-etw-provider.h` indicate how to start/stop a simple trace
 from the command line.
 
 ## Building
@@ -68,7 +68,7 @@ To build to the `out/build` directory run the following (from the project root):
 mkdir out\build
 cd out\build
 cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo ../..
-cmake --build -v .
+ninja
 ```
 
 ## Implementation notes

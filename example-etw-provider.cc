@@ -10,7 +10,7 @@ ExampleEtwProvider* ExampleEtwProvider::GetProvider() {
   return &the_provider;
 }
 
-// Any non-trivial logging should be a separate function call, not an inlined
+// Any non-trivial logging should be a separate function call, not inlined
 void ExampleEtwProvider::Log3Fields(INT32 val, const std::string& msg, void* addr) {
   constexpr static auto event_desc = EventDescriptor(100);
   constexpr static auto event_meta = EventMetadata("my1stEvent",

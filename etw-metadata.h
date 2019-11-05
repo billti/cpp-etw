@@ -67,6 +67,7 @@ constexpr auto JoinFields(F1 field1) {
   return field1;
 }
 
+// Join two or more fields together.
 template <typename F1, typename F2, typename... Ts>
 constexpr auto JoinFields(F1 field1, F2 field2, Ts... args) {
   auto bytes = JoinBytes(field1, field2);

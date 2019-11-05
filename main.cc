@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <cstdint>
 
-#include "v8-etw.h"
+#include "example-etw-provider.h"
 
-v8::etw::V8EtwProvider* v8_provider = nullptr;
+example::ExampleEtwProvider* example_etw_provider = nullptr;
 INT32 total_elements = 0;
 
 void print_array(int* p_start, int count) {
@@ -19,7 +19,7 @@ LONGLONG sort_array() {
   QueryPerformanceFrequency(&Frequency);
   QueryPerformanceCounter(&StartingTime);
 
-  v8_provider->Initialized();
+  example_etw_provider->Initialized();
 
   for (int i = 0; i < 10000; ++i) {
     // Returns a value between 0 and RAND_MAX (0x7fff i.e. 32767)
@@ -32,7 +32,7 @@ LONGLONG sort_array() {
       *(p_elems + j) = rand();
     }
 
-    v8_provider->StartSort(r);
+    example_etw_provider->StartSort(r);
 
     qsort(p_elems, r, sizeof(int), [](void const* a, void const* b) -> int {
       int _a = *(static_cast<const int*>(a));
@@ -41,12 +41,12 @@ LONGLONG sort_array() {
       return _a > _b ? 1 : -1;
     });
 
-    v8_provider->StopSort();
+    example_etw_provider->StopSort();
 
     delete[] p_elems;
   }
 
-  v8_provider->Finished(total_elements);
+  example_etw_provider->Finished(total_elements);
 
   QueryPerformanceCounter(&EndingTime);
   ElapsedMicroseconds.QuadPart = EndingTime.QuadPart - StartingTime.QuadPart;
@@ -58,8 +58,8 @@ LONGLONG sort_array() {
 }
 
 int main(int argc, char** argv) {
-  v8_provider = v8::etw::V8EtwProvider::GetProvider();
-  if (v8_provider->is_enabled == false) {
+  example_etw_provider = example::ExampleEtwProvider::GetProvider();
+  if (example_etw_provider->is_enabled == false) {
     printf("Enable the provider before running the tests");
     return -1;
   }
@@ -71,13 +71,13 @@ int main(int argc, char** argv) {
     // Constant seed to ensure the same work on each run
     srand(51);
     total_elements = 0;
-    v8_provider->is_enabled = true;
+    example_etw_provider->is_enabled = true;
     duration = sort_array();
     printf("%8d  ", static_cast<int>(duration));
 
     srand(51);
     total_elements = 0;
-    v8_provider->is_enabled = false;
+    example_etw_provider->is_enabled = false;
     duration = sort_array();
     printf("%8d\n", static_cast<int>(duration));
   }

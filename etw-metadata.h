@@ -2,7 +2,6 @@
 
 #include <utility>
 
-namespace v8 {
 namespace etw {
 
 using uint8_t = unsigned char;
@@ -85,4 +84,3 @@ constexpr auto EventMetadata(char const (&event_name)[N], Ts... fieldArgs) {
 }
 
 }  // namespace etw
-}  // namespace v8

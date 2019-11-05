@@ -33,6 +33,8 @@ constexpr GUID v8_provider_guid = {
     {0x63, 0x8c, 0x2d, 0xd5, 0xfd, 0x3e, 0xec, 0x2e}};
 constexpr char v8_provider_name[] = "v8js";
 
+using namespace ::etw;
+
 class V8EtwProvider : public EtwEvents {
  public:
   static V8EtwProvider* GetProvider();

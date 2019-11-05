@@ -8,7 +8,6 @@
 
 #include "etw-metadata.h"
 
-namespace v8 {
 namespace etw {
 
 // GCC/Clang supported builtin for branch hints
@@ -53,8 +52,8 @@ class EtwEvents {
     ULONG result =
         EventRegister(&provider, EtwEvents::EnableCallback, this, &reg_handle);
     if (result != ERROR_SUCCESS) {
-      // TODO: Should this fail silently somehow? ETW isn't critical.
-      // throw new std::exception("Failed to register provider");
+      // Note: Fail silenty here, rather than throw. Tracing is typically not
+      // critical, and this means no exception support is needed.
       reg_handle = 0;
       return;
     }
@@ -74,7 +73,7 @@ class EtwEvents {
 
   // For use by this class before calling EventWrite
   bool IsEventEnabled(const EVENT_DESCRIPTOR* pEventDesc) {
-    if (LIKELY(this->is_enabled == false || reg_handle == 0)) return false;
+    if (LIKELY(this->is_enabled == false)) return false;
     return (pEventDesc->Level <= this->current_level) &&
            (pEventDesc->Keyword == 0 ||
             ((pEventDesc->Keyword & this->current_keywords) != 0));
@@ -82,7 +81,7 @@ class EtwEvents {
 
   // For use by user-code before constructing event data
   bool IsEventEnabled(UCHAR level, ULONGLONG keywords) {
-    if (reg_handle == 0 || this->is_enabled == false) return false;
+    if (LIKELY(this->is_enabled == false)) return false;
     return (level <= this->current_level) &&
            (keywords == 0 || ((keywords & this->current_keywords) != 0));
   }
@@ -141,8 +140,8 @@ class EtwEvents {
     LogEvent(p_event_desc, descriptors, desc_count);
   }
 
-  // See
-  // https://docs.microsoft.com/en-us/windows/win32/api/evntprov/nc-evntprov-penablecallback
+  // Called whenever the the state of providers listening changes.
+  // Also called immediately on registering if there is already a listener.
   static void NTAPI EnableCallback(
       LPCGUID SourceId, ULONG IsEnabled,
       UCHAR Level,  // Is 0xFF if not specified by the session
@@ -164,7 +163,7 @@ class EtwEvents {
     }
   }
 
-  // Here temporarily to manipulate for testing. Make private after
+  // Here temporarily to manipulate for testing. Make private after.
   bool is_enabled;
 
  private:
@@ -184,11 +183,10 @@ constexpr auto EventDescriptor(USHORT id, UCHAR level = 0,
                           kManifestFreeChannel,
                           level,
                           opcode,
-                          0,  // Task
+                          task,
                           keyword};
 }
 
 #undef LIKELY
 
 }  // namespace etw
-}  // namespace v8

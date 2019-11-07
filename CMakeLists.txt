@@ -10,4 +10,4 @@ set(CMAKE_CXX_FLAGS "/std:c++14")
 
 project(cpp-etw)
 
-add_executable (cpp-etw "main.cc" "example-etw-provider.cc" "example-etw-provider.h" "etw-events.h" "etw-metadata.h")
+add_executable (cpp-etw "main.cc" "example-etw-provider.cc" "example-etw-provider.h" "etw-provider.h" "etw-metadata.h")

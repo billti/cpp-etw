@@ -6,7 +6,7 @@
 
 #include <string>
 
-#include "./etw-events.h"
+#include "./etw-provider.h"
 
 namespace example {
 

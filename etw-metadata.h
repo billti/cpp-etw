@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// Provides templates and functions to enable the `constexpr` declaration
+// of metadata for ETW events.
+
 #pragma once
 
 #include <cstdint>
@@ -35,11 +38,13 @@ struct str_bytes<0> {
   size_t size;
 };
 
+// Factory function to simplify creating a str_bytes from a string literal
 template <size_t count, typename idx = std::make_index_sequence<count>>
 constexpr auto MakeStrBytes(char const (&s)[count]) {
   return str_bytes<count>{s, idx{}};
 }
 
+// Concatenates two str_bytes into one
 template <std::size_t size1, std::size_t size2>
 constexpr auto JoinBytes(const str_bytes<size1>& str1,
                          const str_bytes<size2>& str2) {
@@ -48,6 +53,7 @@ constexpr auto JoinBytes(const str_bytes<size1>& str1,
   return str_bytes<size1 + size2>{str1, idx1, str2, idx2};
 }
 
+// Creates an str_bytes which is the field name suffixed with the field type
 template <size_t count>
 constexpr auto Field(char const (&s)[count], uint8_t type) {
   auto field_name = MakeStrBytes(s);
@@ -55,13 +61,17 @@ constexpr auto Field(char const (&s)[count], uint8_t type) {
   return JoinBytes(field_name, MakeStrBytes(type_arr));
 }
 
-// The metadata starts with a uint16 of the total size, and a 0x00 value tag
+// Creates the ETW event metadata header, which consists of a uint16_t
+// representing the total size, and a tag byte (always 0x00 currently).
 constexpr auto Header(size_t size) {
   const char header_bytes[3] = {static_cast<char>(size & 0xFF),
                                 static_cast<char>(size >> 8 & 0xFF),
                                 '\0'};
   return MakeStrBytes(header_bytes);
 }
+
+// The JoinFields implementations below are a set of overloads for constructing
+// a str_bytes representing the concatenated fields from a parameter pack.
 
 // Empty case needed for events with no fields.
 constexpr auto JoinFields() { return str_bytes<0>{}; }
@@ -79,6 +89,15 @@ constexpr auto JoinFields(T1 field1, T2 field2, Ts... args) {
   return JoinFields(bytes, args...);
 }
 
+// Creates a constexpr char[] representing the metadata for an ETW event.
+// Declare the variable as `constexpr static auto` and provide the event name,
+// followed by a series of `Field` invocations for each field.
+//
+// Example:
+//  constexpr static auto event_meta = EventMetadata("my1stEvent",
+//      Field("MyIntVal", kTypeInt32),
+//      Field("MyMsg", kTypeAnsiStr),
+//      Field("Address", kTypePointer));
 template <std::size_t count, typename... Ts>
 constexpr auto EventMetadata(char const (&name)[count], Ts... field_args) {
   auto name_bytes = MakeStrBytes(name);

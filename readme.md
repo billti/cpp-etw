@@ -98,6 +98,11 @@ cmake --build ./build
   instructions may not even be fetched into the instruction cache to execute,
   resulting in even lower overhead.
 
+## Misc
+
+- ETW overview: <https://blogs.msdn.microsoft.com/dcook/2015/09/30/etw-overview/>
+
+
 ## TODO
 
 - Not all field data types have been implemented yet.

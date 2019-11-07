@@ -22,6 +22,10 @@ For simple testing, use "logman" to create a trace for this provider via:
 
   logman create trace -n example -o example.etl -p {f0c59bc0-7da6-58c1-b1b0-e97dd10ac324}
 
+After the provider GUID, you can optionally specificy keywords and level, e.g.
+
+  -p {f0c59bc0-7da6-58c1-b1b0-e97dd10ac324} 0xBEEF 0x05
+
 To capture events, start/stop the trace via:
 
   logman start example

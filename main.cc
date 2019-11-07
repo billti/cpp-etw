@@ -68,25 +68,25 @@ int64_t SortArray() {
 
 int main() {
   example_etw_provider = &example::ExampleEtwProvider::GetProvider();
-  if (example_etw_provider->is_enabled == false) {
+  if (example_etw_provider->enabled() == false) {
     printf("Enable the provider before running the tests");
     return -1;
   }
 
   printf("enabled   disabled\n");
-  for (int i = 0; i < 40; ++i) {
+  for (int i = 0; i < 20; ++i) {
     int64_t duration;
 
     // Constant seed to ensure the same work on each run
     srand(51);
     total_elements = 0;
-    example_etw_provider->is_enabled = true;
+    example_etw_provider->set_enabled(true);
     duration = SortArray();
     printf("%8d  ", static_cast<int>(duration));
 
     srand(51);
     total_elements = 0;
-    example_etw_provider->is_enabled = false;
+    example_etw_provider->set_enabled(false);
     duration = SortArray();
     printf("%8d\n", static_cast<int>(duration));
   }

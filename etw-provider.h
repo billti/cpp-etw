@@ -2,6 +2,28 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// Provides constants and a base class to use in the implementation of an ETW
+// provider. To use, derive a class from EtwProvider which constructs the base
+// class with the GUID and name for the provider, e.g.
+//
+//    ExampleEtwProvider::ExampleEtwProvider()
+//        : EtwProvider(example_provider_guid, example_provider_name) {}
+//
+// To log events, implement member functions that define the necessary event
+// metadata, and then call the LogEventData member function with the metadata
+// and field values, e.g.
+//
+//    void ExampleEtwProvider::Log3Fields(int val, const std::string& msg, void* addr)
+//    {
+//      constexpr static auto event_desc = EventDescriptor(100);
+//      constexpr static auto event_meta = EventMetadata("my1stEvent",
+//          Field("MyIntVal", etw::kTypeInt32),
+//          Field("MyMsg", etw::kTypeAnsiStr),
+//          Field("Address", etw::kTypePointer));
+//
+//      LogEventData(&event_desc, &event_meta, val, msg, addr);
+//    }
+
 #pragma once
 
 #include <Windows.h>
@@ -13,9 +35,6 @@
 #include "./etw-metadata.h"
 
 namespace etw {
-
-// All "manifest-free" events should go to channel 11 by default
-const UCHAR kManifestFreeChannel = 11;
 
 // Taken from the TRACE_LEVEL_* macros in <evntrace.h>
 const UCHAR kLevelNone = 0;
@@ -37,6 +56,22 @@ const UCHAR kTypeInt32 = 7;
 const UCHAR kTypeDouble = 12;
 const UCHAR kTypePointer = 21;
 
+// All "manifest-free" events should go to channel 11 by default
+const UCHAR kManifestFreeChannel = 11;
+
+// Creates a constexpr EVENT_DESCRIPTOR structure for use with ETW calls
+constexpr auto EventDescriptor(USHORT id, UCHAR level = 0,
+                               ULONGLONG keyword = 0, UCHAR opcode = 0,
+                               USHORT task = 0) {
+  return EVENT_DESCRIPTOR{id,
+                          0,  // Version
+                          kManifestFreeChannel,
+                          level,
+                          opcode,
+                          task,
+                          keyword};
+}
+
 class EtwProvider {
  public:
   // An event provider should be a singleton in a process. Disable copy/move.
@@ -51,153 +86,149 @@ class EtwProvider {
 #endif
 
   // For use by this class before calling EventWrite
-  bool IsEventEnabled(const EVENT_DESCRIPTOR* pEventDesc) {
-    if (LIKELY(this->is_enabled == false)) return false;
-    return (pEventDesc->Level <= this->current_level) &&
-           (pEventDesc->Keyword == 0 ||
-            ((pEventDesc->Keyword & this->current_keywords) != 0));
+  bool IsEventEnabled(const EVENT_DESCRIPTOR* event_desc) {
+    if (LIKELY(this->enabled_ == false)) return false;
+    return (event_desc->Level <= this->level_) &&
+           (event_desc->Keyword == 0 ||
+            ((event_desc->Keyword & this->keywords_) != 0));
   }
 
   // For use by user-code before constructing event data
-  bool IsEventEnabled(UCHAR level, ULONGLONG keywords) {
-    if (LIKELY(this->is_enabled == false)) return false;
-    return (level <= this->current_level) &&
-           (keywords == 0 || ((keywords & this->current_keywords) != 0));
+  bool IsEventEnabled(UCHAR level, ULONGLONG keywords = 0) {
+    if (LIKELY(this->enabled_ == false)) return false;
+    return (level <= this->level_) &&
+           (keywords == 0 || ((keywords & this->keywords_) != 0));
   }
 
 #undef LIKELY
 
-  void SetMetaDescriptors(EVENT_DATA_DESCRIPTOR* pDesc, const void* pMetadata,
+  void SetMetaDescriptors(EVENT_DATA_DESCRIPTOR* data_descriptor,
+                          const void* metadata,
                           size_t size) {
-    EventDataDescCreate(pDesc, traits.data(), traits.size());
-    pDesc->Type = EVENT_DATA_DESCRIPTOR_TYPE_PROVIDER_METADATA;
-    ++pDesc;
-    EventDataDescCreate(pDesc, pMetadata, static_cast<ULONG>(size));
-    pDesc->Type = EVENT_DATA_DESCRIPTOR_TYPE_EVENT_METADATA;
+    // Note: May be able to just set the name on the provider if only Win10 or
+    // later can be supported. See the docs for EventSetInformation and
+    // https://docs.microsoft.com/en-us/windows/win32/etw/provider-traits
+    EventDataDescCreate(data_descriptor, traits_.data(), traits_.size());
+    data_descriptor->Type = EVENT_DATA_DESCRIPTOR_TYPE_PROVIDER_METADATA;
+    ++data_descriptor;
+    EventDataDescCreate(data_descriptor, metadata, static_cast<ULONG>(size));
+    data_descriptor->Type = EVENT_DATA_DESCRIPTOR_TYPE_EVENT_METADATA;
   }
 
-  ULONG LogEvent(const EVENT_DESCRIPTOR* pEventDesc,
-                 EVENT_DATA_DESCRIPTOR* pDataDesc, ULONG desc_count) {
-    if (reg_handle == 0) return ERROR_SUCCESS;
-    return EventWriteTransfer(reg_handle, pEventDesc, NULL /* ActivityId */,
-                              NULL /* RelatedActivityId */, desc_count,
-                              pDataDesc);
+  ULONG LogEvent(const EVENT_DESCRIPTOR* event_descriptor,
+                 EVENT_DATA_DESCRIPTOR* data_descriptor, ULONG desc_count) {
+    if (reg_handle_ == 0) return ERROR_SUCCESS;
+    return EventWriteTransfer(reg_handle_, event_descriptor,
+                              NULL /* ActivityId */,
+                              NULL /* RelatedActivityId */,
+                              desc_count,
+                              data_descriptor);
   }
 
   // One or more fields to set
   template <typename T, typename... Ts>
-  void SetFieldDescriptors(PEVENT_DATA_DESCRIPTOR pFields, const T& val,
-                           const Ts&... rest) {
-    EventDataDescCreate(pFields, &val, sizeof(val));
-    SetFieldDescriptors(++pFields, rest...);
+  void SetFieldDescriptors(EVENT_DATA_DESCRIPTOR *data_descriptors,
+                           const T& value, const Ts&... rest) {
+    EventDataDescCreate(data_descriptors, &value, sizeof(value));
+    SetFieldDescriptors(++data_descriptors, rest...);
   }
 
   // Specialize for strings
   template <typename... Ts>
-  void SetFieldDescriptors(PEVENT_DATA_DESCRIPTOR pFields,
-                           const std::string& val, const Ts&... rest) {
-    EventDataDescCreate(pFields, val.data(),
-                        static_cast<ULONG>(val.size() + 1));
-    SetFieldDescriptors(++pFields, rest...);
+  void SetFieldDescriptors(EVENT_DATA_DESCRIPTOR *data_descriptors,
+                           const std::string& value, const Ts&... rest) {
+    EventDataDescCreate(data_descriptors, value.data(),
+                        static_cast<ULONG>(value.size() + 1));
+    SetFieldDescriptors(++data_descriptors, rest...);
   }
 
   // Base case, no fields left to set
-  void SetFieldDescriptors(PEVENT_DATA_DESCRIPTOR pFields) {}
+  void SetFieldDescriptors(EVENT_DATA_DESCRIPTOR *data_descriptors) {}
 
   // Template LogEvent used to simplify call
   template <typename T, typename... Fs>
-  void LogEventData(const EVENT_DESCRIPTOR* p_event_desc, T* meta,
+  void LogEventData(const EVENT_DESCRIPTOR* event_descriptor, T* meta,
                     const Fs&... fields) {
-    if (!IsEventEnabled(p_event_desc)) return;
+    if (!IsEventEnabled(event_descriptor)) return;
 
-    const size_t desc_count = sizeof...(fields) + 2;
+    const size_t descriptor_count = sizeof...(fields) + 2;
     EVENT_DATA_DESCRIPTOR descriptors[sizeof...(fields) + 2];
 
     SetMetaDescriptors(descriptors, meta->bytes, meta->size);
 
-    PEVENT_DATA_DESCRIPTOR pFields = descriptors + 2;
-    SetFieldDescriptors(pFields, fields...);
+    EVENT_DATA_DESCRIPTOR *data_descriptors = descriptors + 2;
+    SetFieldDescriptors(data_descriptors, fields...);
 
-    LogEvent(p_event_desc, descriptors, desc_count);
+    LogEvent(event_descriptor, descriptors, descriptor_count);
   }
 
   // Called whenever the the state of providers listening changes.
   // Also called immediately on registering if there is already a listener.
   static void NTAPI EnableCallback(
-      LPCGUID SourceId, ULONG IsEnabled,
-      UCHAR Level,  // Is 0xFF if not specified by the session
-      ULONGLONG
-          MatchAnyKeyword,  // Is 0xFF...FF if not specified by the session
-      ULONGLONG MatchAllKeyword, PEVENT_FILTER_DESCRIPTOR FilterData,
-      PVOID CallbackContext) {
-    if (CallbackContext == nullptr) return;
-    EtwProvider* p_this = static_cast<EtwProvider*>(CallbackContext);
-    switch (IsEnabled) {
+      const GUID *source_id,
+      ULONG is_enabled,
+      UCHAR level,  // Is 0xFF if not specified by the session
+      ULONGLONG match_any_keyword,  // 0xFF...FF if not specified by the session
+      ULONGLONG match_all_keyword,
+      EVENT_FILTER_DESCRIPTOR *filter_data,
+      VOID *callback_context) {
+    if (callback_context == nullptr) return;
+    EtwProvider* the_provider = static_cast<EtwProvider*>(callback_context);
+    switch (is_enabled) {
       case 0:  // EVENT_CONTROL_CODE_DISABLE_PROVIDER
-        p_this->is_enabled = false;
+        the_provider->enabled_ = false;
         break;
       case 1:  // EVENT_CONTROL_CODE_ENABLE_PROVIDER
-        p_this->is_enabled = true;
-        p_this->current_level = Level;
-        p_this->current_keywords = MatchAnyKeyword;
+        the_provider->enabled_ = true;
+        the_provider->level_ = level;
+        the_provider->keywords_ = match_any_keyword;
         break;
     }
   }
 
-  // TODO(billti): Public temporarily to manipulate for testing. Make private.
-  bool is_enabled;
+  bool enabled() { return enabled_; }
+  void set_enabled(bool value) { enabled_ = value; }  // For testing only
 
  protected:
-  // All creation/deletion should be via derived classes
+  // All creation/deletion should be via derived classes, hence protected.
   EtwProvider(const GUID& provider_guid, const std::string& provider_name)
-      : is_enabled(false),
-        provider(provider_guid),
-        name(provider_name),
-        reg_handle(0),
-        current_level(0),
-        current_keywords(0) {
+      : enabled_(false),
+        provider_(provider_guid),
+        name_(provider_name),
+        reg_handle_(0),
+        level_(0),
+        keywords_(0) {
     ULONG result =
-        EventRegister(&provider,
-                      EtwProvider::EnableCallback, this, &reg_handle);
+        EventRegister(&provider_,
+                      EtwProvider::EnableCallback, this, &reg_handle_);
     if (result != ERROR_SUCCESS) {
       // Note: Fail silenty here, rather than throw. Tracing is typically not
       // critical, and this means no exception support is needed.
-      reg_handle = 0;
+      reg_handle_ = 0;
       return;
     }
 
     // Copy the provider name, prefixed by a UINT16 length, to a buffer.
     // The string in the buffer should be null terminated.
     // See https://docs.microsoft.com/en-us/windows/win32/etw/provider-traits
-    size_t traits_bytes = sizeof(UINT16) + name.size() + 1;
-    traits.resize(traits_bytes, '\0');  // Trailing byte will already be null
-    *reinterpret_cast<UINT16*>(traits.data()) = traits_bytes;
-    name.copy(traits.data() + sizeof(UINT16), name.size(), 0);
+    size_t traits_bytes = sizeof(UINT16) + name_.size() + 1;
+    traits_.resize(traits_bytes, '\0');  // Trailing byte will already be null
+    *reinterpret_cast<UINT16*>(traits_.data()) = traits_bytes;
+    name_.copy(traits_.data() + sizeof(UINT16), name_.size(), 0);
   }
 
   ~EtwProvider() {
-    if (reg_handle != 0) EventUnregister(reg_handle);
+    if (reg_handle_ != 0) EventUnregister(reg_handle_);
   }
 
  private:
-  const GUID provider;
-  const std::string name;
-  REGHANDLE reg_handle;
-  std::vector<char> traits;
-  UCHAR current_level;
-  ULONGLONG current_keywords;
+  bool enabled_;
+  const GUID provider_;
+  const std::string name_;
+  REGHANDLE reg_handle_;
+  std::vector<char> traits_;
+  UCHAR level_;
+  ULONGLONG keywords_;
 };
-
-constexpr auto EventDescriptor(USHORT id, UCHAR level = 0,
-                               ULONGLONG keyword = 0, UCHAR opcode = 0,
-                               USHORT task = 0) {
-  return EVENT_DESCRIPTOR{id,
-                          0,  // Version
-                          kManifestFreeChannel,
-                          level,
-                          opcode,
-                          task,
-                          keyword};
-}
 
 }  // namespace etw

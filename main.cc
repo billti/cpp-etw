@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "./example-etw-provider.h"
+#include "./chakra-etw-provider.h"
 
 namespace {
 

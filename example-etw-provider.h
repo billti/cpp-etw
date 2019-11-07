@@ -4,9 +4,16 @@
 
 #pragma once
 
-#include "etw-events.h"
+#include <string>
+
+#include "./etw-events.h"
 
 namespace example {
+
+using etw::EtwEvents;
+using etw::EventDescriptor;
+using etw::EventMetadata;
+using etw::Field;
 
 /*
 Note: Below should be run from an admin prompt.
@@ -33,19 +40,17 @@ constexpr GUID example_provider_guid = {
     0xf0c59bc0,
     0x7da6,
     0x58c1,
-    {0xb1,0xb0,0xe9,0x7d,0xd1,0x0a,0xc3,0x24}};
+    {0xb1, 0xb0, 0xe9, 0x7d, 0xd1, 0x0a, 0xc3, 0x24}};
 constexpr char example_provider_name[] = "example";
-
-using namespace ::etw;
 
 class ExampleEtwProvider : public EtwEvents {
  public:
   static ExampleEtwProvider& GetProvider();
   void Initialized();
-  void StartSort(INT32 element_count);
+  void StartSort(int element_count);
   void StopSort();
-  void Finished(INT32 total_elements);
-  void Log3Fields(INT32 val, const std::string& msg, void* addr);
+  void Finished(int total_elements);
+  void Log3Fields(int val, const std::string& msg, void* addr);
 
  private:
   ExampleEtwProvider();
@@ -54,33 +59,33 @@ class ExampleEtwProvider : public EtwEvents {
 // For minimal overhead in instrumented code, make the functions inline to avoid
 // a call.
 inline void ExampleEtwProvider::Initialized() {
-  constexpr static auto event_desc = EventDescriptor(101, kLevelInfo);
+  constexpr static auto event_desc = EventDescriptor(101, etw::kLevelInfo);
   constexpr static auto event_meta = EventMetadata("Initialized");
 
   LogEventData(&event_desc, &event_meta);
 }
 
-inline void ExampleEtwProvider::StartSort(INT32 element_count) {
+inline void ExampleEtwProvider::StartSort(int element_count) {
   constexpr static auto event_desc =
-      EventDescriptor(102, kLevelInfo, 0 /*keyword*/, kOpCodeStart);
+      EventDescriptor(102, etw::kLevelInfo, 0 /*keyword*/, etw::kOpCodeStart);
   constexpr static auto event_meta =
-      EventMetadata("StartSort", Field("element_count", kTypeInt32));
+      EventMetadata("StartSort", Field("element_count", etw::kTypeInt32));
 
   LogEventData(&event_desc, &event_meta, element_count);
 }
 
 inline void ExampleEtwProvider::StopSort() {
   constexpr static auto event_desc =
-      EventDescriptor(103, kLevelInfo, 0, kOpCodeStop);
+      EventDescriptor(103, etw::kLevelInfo, 0, etw::kOpCodeStop);
   constexpr static auto event_meta = EventMetadata("StopSort");
 
   LogEventData(&event_desc, &event_meta);
 }
 
-inline void ExampleEtwProvider::Finished(INT32 total_elements) {
-  constexpr static auto event_desc = EventDescriptor(104, kLevelInfo);
+inline void ExampleEtwProvider::Finished(int total_elements) {
+  constexpr static auto event_desc = EventDescriptor(104, etw::kLevelInfo);
   constexpr static auto event_meta =
-      EventMetadata("Finished", Field("element_count", kTypeInt32));
+      EventMetadata("Finished", Field("element_count", etw::kTypeInt32));
 
   LogEventData(&event_desc, &event_meta, total_elements);
 }

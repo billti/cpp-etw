@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-#include "etw-metadata.h"
+#include "./etw-metadata.h"
 
 namespace etw {
 
@@ -144,10 +144,10 @@ class EtwEvents {
     }
   }
 
-  // TODO: Here temporarily to manipulate for testing. Make private after.
+  // TODO(billti): Public temporarily to manipulate for testing. Make private.
   bool is_enabled;
 
-protected:
+ protected:
   // All creation/deletion should be via derived classes
   EtwEvents(const GUID& provider_guid, const std::string& provider_name)
       : is_enabled(false),

@@ -10,20 +10,20 @@
 namespace {
 
 example::ExampleEtwProvider* example_etw_provider = nullptr;
-INT32 total_elements = 0;
+int total_elements = 0;
 
-void print_array(int* p_start, int count) {
+void PrintArray(int* p_start, int count) {
   for (int i = 0; i < count; ++i) {
     printf("%d ", *(p_start + i));
   }
   printf("\n");
 }
 
-LONGLONG sort_array() {
-  LARGE_INTEGER StartingTime, EndingTime, ElapsedMicroseconds;
-  LARGE_INTEGER Frequency;
-  QueryPerformanceFrequency(&Frequency);
-  QueryPerformanceCounter(&StartingTime);
+int64_t SortArray() {
+  LARGE_INTEGER starting_time, ending_time, elapsed_microseconds;
+  LARGE_INTEGER frequency;
+  QueryPerformanceFrequency(&frequency);
+  QueryPerformanceCounter(&starting_time);
 
   example_etw_provider->Initialized();
 
@@ -54,18 +54,18 @@ LONGLONG sort_array() {
 
   example_etw_provider->Finished(total_elements);
 
-  QueryPerformanceCounter(&EndingTime);
-  ElapsedMicroseconds.QuadPart = EndingTime.QuadPart - StartingTime.QuadPart;
+  QueryPerformanceCounter(&ending_time);
+  elapsed_microseconds.QuadPart = ending_time.QuadPart - starting_time.QuadPart;
   // We now have the elapsed number of ticks, along with the
   // number of ticks-per-second. Convert to the number of elapsed microseconds.
-  ElapsedMicroseconds.QuadPart *= 1000000;
-  ElapsedMicroseconds.QuadPart /= Frequency.QuadPart;
-  return ElapsedMicroseconds.QuadPart;
+  elapsed_microseconds.QuadPart *= 1000000;
+  elapsed_microseconds.QuadPart /= frequency.QuadPart;
+  return elapsed_microseconds.QuadPart;
 }
 
 }  // namespace
 
-int main(int argc, char** argv) {
+int main() {
   example_etw_provider = &example::ExampleEtwProvider::GetProvider();
   if (example_etw_provider->is_enabled == false) {
     printf("Enable the provider before running the tests");
@@ -74,19 +74,19 @@ int main(int argc, char** argv) {
 
   printf("enabled   disabled\n");
   for (int i = 0; i < 40; ++i) {
-    LONGLONG duration;
+    int64_t duration;
 
     // Constant seed to ensure the same work on each run
     srand(51);
     total_elements = 0;
     example_etw_provider->is_enabled = true;
-    duration = sort_array();
+    duration = SortArray();
     printf("%8d  ", static_cast<int>(duration));
 
     srand(51);
     total_elements = 0;
     example_etw_provider->is_enabled = false;
-    duration = sort_array();
+    duration = SortArray();
     printf("%8d\n", static_cast<int>(duration));
   }
   return 0;

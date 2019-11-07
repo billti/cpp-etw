@@ -4,27 +4,26 @@
 
 #pragma once
 
+#include <cstdint>
 #include <utility>
 
 namespace etw {
 
-using uint8_t = unsigned char;
-
 // Structure to treat a string literal, or char[], as a constexpr byte sequence
-template <size_t N>
+template <size_t count>
 struct str_bytes {
-  template <std::size_t... I>
-  constexpr str_bytes(char const (&s)[N], std::index_sequence<I...>)
-      : bytes{s[I]...}, size(N){};
+  template <std::size_t... idx>
+  constexpr str_bytes(char const (&str)[count], std::index_sequence<idx...>)
+      : bytes{str[idx]...}, size(count) {}
 
   // Concatenate two str_bytes
-  template <std::size_t s1, std::size_t s2, std::size_t... I1,
-            std::size_t... I2>
-  constexpr str_bytes(const str_bytes<s1>& b1, std::index_sequence<I1...>,
-                      const str_bytes<s2>& b2, std::index_sequence<I2...>)
-      : bytes{b1.bytes[I1]..., b2.bytes[I2]...}, size(N) {}
+  template <std::size_t count1, std::size_t count2,
+            std::size_t... idx1, std::size_t... idx2>
+  constexpr str_bytes(const str_bytes<count1>& s1, std::index_sequence<idx1...>,
+                      const str_bytes<count2>& s2, std::index_sequence<idx2...>)
+      : bytes{s1.bytes[idx1]..., s2.bytes[idx2]...}, size(count) {}
 
-  char bytes[N];
+  char bytes[count];  // NOLINT
   size_t size;
 };
 
@@ -36,20 +35,21 @@ struct str_bytes<0> {
   size_t size;
 };
 
-template <size_t N, typename idx = std::make_index_sequence<N>>
-constexpr auto MakeStrBytes(char const (&s)[N]) {
-  return str_bytes<N>{s, idx{}};
+template <size_t count, typename idx = std::make_index_sequence<count>>
+constexpr auto MakeStrBytes(char const (&s)[count]) {
+  return str_bytes<count>{s, idx{}};
 }
 
-template <std::size_t s1, std::size_t s2>
-constexpr auto JoinBytes(const str_bytes<s1>& b1, const str_bytes<s2>& b2) {
-  auto idx1 = std::make_index_sequence<s1>();
-  auto idx2 = std::make_index_sequence<s2>();
-  return str_bytes<s1 + s2>{b1, idx1, b2, idx2};
+template <std::size_t size1, std::size_t size2>
+constexpr auto JoinBytes(const str_bytes<size1>& str1,
+                         const str_bytes<size2>& str2) {
+  auto idx1 = std::make_index_sequence<size1>();
+  auto idx2 = std::make_index_sequence<size2>();
+  return str_bytes<size1 + size2>{str1, idx1, str2, idx2};
 }
 
-template <size_t N>
-constexpr auto Field(char const (&s)[N], uint8_t type) {
+template <size_t count>
+constexpr auto Field(char const (&s)[count], uint8_t type) {
   auto field_name = MakeStrBytes(s);
   const char type_arr[1] = {static_cast<char>(type)};
   return JoinBytes(field_name, MakeStrBytes(type_arr));
@@ -67,23 +67,23 @@ constexpr auto Header(size_t size) {
 constexpr auto JoinFields() { return str_bytes<0>{}; }
 
 // Only one field, or base case when multiple fields.
-template <typename F1>
-constexpr auto JoinFields(F1 field1) {
-  return field1;
+template <typename T1>
+constexpr auto JoinFields(T1 field) {
+  return field;
 }
 
 // Join two or more fields together.
-template <typename F1, typename F2, typename... Ts>
-constexpr auto JoinFields(F1 field1, F2 field2, Ts... args) {
+template <typename T1, typename T2, typename... Ts>
+constexpr auto JoinFields(T1 field1, T2 field2, Ts... args) {
   auto bytes = JoinBytes(field1, field2);
   return JoinFields(bytes, args...);
 }
 
-template <std::size_t N, typename... Ts>
-constexpr auto EventMetadata(char const (&event_name)[N], Ts... fieldArgs) {
-  auto name = MakeStrBytes(event_name);
-  auto fields = JoinFields(fieldArgs...);
-  auto data = JoinBytes(name, fields);
+template <std::size_t count, typename... Ts>
+constexpr auto EventMetadata(char const (&name)[count], Ts... field_args) {
+  auto name_bytes = MakeStrBytes(name);
+  auto fields = JoinFields(field_args...);
+  auto data = JoinBytes(name_bytes, fields);
 
   auto header = Header(data.size + 3);  // Size includes the 2 byte size + tag
   return JoinBytes(header, data);

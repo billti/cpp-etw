@@ -2,7 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "example-etw-provider.h"
+#include "./example-etw-provider.h"
+
+#include <string>
 
 namespace example {
 
@@ -18,12 +20,13 @@ ExampleEtwProvider& ExampleEtwProvider::GetProvider() {
 }
 
 // Any non-trivial logging should be a separate function call, not inlined
-void ExampleEtwProvider::Log3Fields(INT32 val, const std::string& msg, void* addr) {
+void ExampleEtwProvider::Log3Fields(int val,
+    const std::string& msg, void* addr) {
   constexpr static auto event_desc = EventDescriptor(100);
   constexpr static auto event_meta = EventMetadata("my1stEvent",
-      Field("MyIntVal", kTypeInt32),
-      Field("MyMsg", kTypeAnsiStr),
-      Field("Address", kTypePointer));
+      Field("MyIntVal", etw::kTypeInt32),
+      Field("MyMsg", etw::kTypeAnsiStr),
+      Field("Address", etw::kTypePointer));
 
   LogEventData(&event_desc, &event_meta, val, msg, addr);
 }

@@ -10,7 +10,7 @@
 
 namespace example {
 
-using etw::EtwEvents;
+using etw::EtwProvider;
 using etw::EventDescriptor;
 using etw::EventMetadata;
 using etw::Field;
@@ -43,7 +43,7 @@ constexpr GUID example_provider_guid = {
     {0xb1, 0xb0, 0xe9, 0x7d, 0xd1, 0x0a, 0xc3, 0x24}};
 constexpr char example_provider_name[] = "example";
 
-class ExampleEtwProvider : public EtwEvents {
+class ExampleEtwProvider : public EtwProvider {
  public:
   static ExampleEtwProvider& GetProvider();
   void Initialized();

@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "example-etw-provider.h"
+#include "./example-etw-provider.h"
 
 namespace {
 
@@ -29,13 +29,14 @@ int64_t SortArray() {
 
   for (int i = 0; i < 10000; ++i) {
     // Returns a value between 0 and RAND_MAX (0x7fff i.e. 32767)
-    int r = (rand() * 1000 / 32767) + 1000;  // Between 1000 & 2000
+    // The below gets a random number between 1000 & 2000
+    int r = (rand() * 1000 / 32767) + 1000;  // NOLINT
     total_elements += r;
 
     // Allocate an array of ints and fill it with random numbers
     int* p_elems = new int[r];
     for (int j = 0; j < r; ++j) {
-      *(p_elems + j) = rand();
+      *(p_elems + j) = rand(); // NOLINT
     }
 
     example_etw_provider->StartSort(r);

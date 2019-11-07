@@ -9,7 +9,7 @@
 namespace example {
 
 ExampleEtwProvider::ExampleEtwProvider()
-    : EtwEvents(example_provider_guid, example_provider_name) {}
+    : EtwProvider(example_provider_guid, example_provider_name) {}
 
 ExampleEtwProvider& ExampleEtwProvider::GetProvider() {
   // The below pattern means the destructor will not run at process exit. (Which

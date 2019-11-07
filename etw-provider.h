@@ -37,11 +37,11 @@ const UCHAR kTypeInt32 = 7;
 const UCHAR kTypeDouble = 12;
 const UCHAR kTypePointer = 21;
 
-class EtwEvents {
+class EtwProvider {
  public:
   // An event provider should be a singleton in a process. Disable copy/move.
-  EtwEvents(const EtwEvents&) = delete;
-  EtwEvents& operator=(const EtwEvents&) = delete;
+  EtwProvider(const EtwProvider&) = delete;
+  EtwProvider& operator=(const EtwProvider&) = delete;
 
 // GCC/Clang supported builtin for branch hints
 #if defined(__GNUC__)
@@ -131,7 +131,7 @@ class EtwEvents {
       ULONGLONG MatchAllKeyword, PEVENT_FILTER_DESCRIPTOR FilterData,
       PVOID CallbackContext) {
     if (CallbackContext == nullptr) return;
-    EtwEvents* p_this = static_cast<EtwEvents*>(CallbackContext);
+    EtwProvider* p_this = static_cast<EtwProvider*>(CallbackContext);
     switch (IsEnabled) {
       case 0:  // EVENT_CONTROL_CODE_DISABLE_PROVIDER
         p_this->is_enabled = false;
@@ -149,7 +149,7 @@ class EtwEvents {
 
  protected:
   // All creation/deletion should be via derived classes
-  EtwEvents(const GUID& provider_guid, const std::string& provider_name)
+  EtwProvider(const GUID& provider_guid, const std::string& provider_name)
       : is_enabled(false),
         provider(provider_guid),
         name(provider_name),
@@ -157,7 +157,8 @@ class EtwEvents {
         current_level(0),
         current_keywords(0) {
     ULONG result =
-        EventRegister(&provider, EtwEvents::EnableCallback, this, &reg_handle);
+        EventRegister(&provider,
+                      EtwProvider::EnableCallback, this, &reg_handle);
     if (result != ERROR_SUCCESS) {
       // Note: Fail silenty here, rather than throw. Tracing is typically not
       // critical, and this means no exception support is needed.
@@ -174,7 +175,7 @@ class EtwEvents {
     name.copy(traits.data() + sizeof(UINT16), name.size(), 0);
   }
 
-  ~EtwEvents() {
+  ~EtwProvider() {
     if (reg_handle != 0) EventUnregister(reg_handle);
   }
 

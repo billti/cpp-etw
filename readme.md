@@ -48,7 +48,7 @@ void MyProvider::Log3Fields(INT32 val, const std::string& msg, void* addr) {
 As the first 2 lines are `constexpr` variables, these result in no runtime code
 and are evaluated entirely at compile time.
 
-The code in `etw-events.h` declares the `EtwEvents` class, which your provider
+The code in `etw-provider.h` declares the `EtwProvider` class, which your provider
 should derive from. See the example implementation in the `example-etw-provider.*` files. The
 `example-etw-provider.cc` file also shows code to ensure only a single instance of the ETW
 provider is instantiated. (It does not demonstrate unregistering currently).
@@ -59,16 +59,15 @@ Comments near the top of `example-etw-provider.h` indicate how to start/stop a s
 from the command line.
 
 ## Building
+
 This project builds using CMake and the Windows SDK. By default the build uses
 Clang (see `CMakeLists.txt` in the root).
 
-To build to the `out/build` directory run the following (from the project root):
+To build to the `./build` directory run the following (from the project root):
 
 ```cmd
-mkdir build
-cd build
-cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
-ninja
+cmake -G Ninja -B ./build -D CMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build ./build
 ```
 
 ## Implementation notes

@@ -1,3 +1,7 @@
+// Copyright 2019 Bill Ticehurst. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
 #pragma once
 
 #include <utility>
@@ -47,14 +51,15 @@ constexpr auto JoinBytes(const str_bytes<s1>& b1, const str_bytes<s2>& b2) {
 template <size_t N>
 constexpr auto Field(char const (&s)[N], uint8_t type) {
   auto field_name = MakeStrBytes(s);
-  const char type_arr[1] = {char(type)};
+  const char type_arr[1] = {static_cast<char>(type)};
   return JoinBytes(field_name, MakeStrBytes(type_arr));
 }
 
 // The metadata starts with a uint16 of the total size, and a 0x00 value tag
 constexpr auto Header(size_t size) {
-  const char header_bytes[3] = {char(size & 0xFF), char(size >> 8 & 0xFF),
-                                char(0x00)};
+  const char header_bytes[3] = {static_cast<char>(size & 0xFF),
+                                static_cast<char>(size >> 8 & 0xFF),
+                                '\0'};
   return MakeStrBytes(header_bytes);
 }
 

@@ -65,9 +65,9 @@ Clang (see `CMakeLists.txt` in the root).
 To build to the `out/build` directory run the following (from the project root):
 
 ```cmd
-mkdir out\build
-cd out\build
-cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo ../..
+mkdir build
+cd build
+cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
 ninja
 ```
 

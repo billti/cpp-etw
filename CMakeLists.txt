@@ -1,10 +1,7 @@
-# CMakeList.txt : CMake project for v8-etw, include source and define
-# project specific logic here.
-#
 cmake_minimum_required (VERSION 3.8)
 
 # Comment out the below 3 set statements to use MSVC on Windows
-# Put clang on the path, e.g: \src\github\v8\third_party\llvm-build\Release+Asserts\bin
+# Put clang-cl on the path before running
 set(CMAKE_CXX_COMPILER clang-cl.exe)
 set(CMAKE_C_COMPILER clang-cl.exe)
 set(CMAKE_LINKER lld-link.exe)

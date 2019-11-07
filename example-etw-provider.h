@@ -1,3 +1,7 @@
+// Copyright 2019 Bill Ticehurst. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
 #pragma once
 
 #include "etw-events.h"
@@ -36,7 +40,7 @@ using namespace ::etw;
 
 class ExampleEtwProvider : public EtwEvents {
  public:
-  static ExampleEtwProvider* GetProvider();
+  static ExampleEtwProvider& GetProvider();
   void Initialized();
   void StartSort(INT32 element_count);
   void StopSort();

@@ -1,7 +1,13 @@
+// Copyright 2019 Bill Ticehurst. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+#include <stdint.h>
 #include <stdio.h>
-#include <cstdint>
 
 #include "example-etw-provider.h"
+
+namespace {
 
 example::ExampleEtwProvider* example_etw_provider = nullptr;
 INT32 total_elements = 0;
@@ -57,8 +63,10 @@ LONGLONG sort_array() {
   return ElapsedMicroseconds.QuadPart;
 }
 
+}  // namespace
+
 int main(int argc, char** argv) {
-  example_etw_provider = example::ExampleEtwProvider::GetProvider();
+  example_etw_provider = &example::ExampleEtwProvider::GetProvider();
   if (example_etw_provider->is_enabled == false) {
     printf("Enable the provider before running the tests");
     return -1;

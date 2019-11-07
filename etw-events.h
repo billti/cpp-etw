@@ -1,3 +1,7 @@
+// Copyright 2019 Bill Ticehurst. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
 #pragma once
 
 #include <Windows.h>
@@ -9,13 +13,6 @@
 #include "etw-metadata.h"
 
 namespace etw {
-
-// GCC/Clang supported builtin for branch hints
-#if defined(__GNUC__)
-#define LIKELY(condition) (__builtin_expect(!!(condition), 1))
-#else
-#define LIKELY(condition) (condition)
-#endif
 
 // All "manifest-free" events should go to channel 11 by default
 const UCHAR kManifestFreeChannel = 11;
@@ -42,34 +39,16 @@ const UCHAR kTypePointer = 21;
 
 class EtwEvents {
  public:
-  EtwEvents(const GUID& provider_guid, const std::string& provider_name)
-      : is_enabled(false),
-        provider(provider_guid),
-        name(provider_name),
-        reg_handle(0),
-        current_level(0),
-        current_keywords(0) {
-    ULONG result =
-        EventRegister(&provider, EtwEvents::EnableCallback, this, &reg_handle);
-    if (result != ERROR_SUCCESS) {
-      // Note: Fail silenty here, rather than throw. Tracing is typically not
-      // critical, and this means no exception support is needed.
-      reg_handle = 0;
-      return;
-    }
+  // An event provider should be a singleton in a process. Disable copy/move.
+  EtwEvents(const EtwEvents&) = delete;
+  EtwEvents& operator=(const EtwEvents&) = delete;
 
-    // Copy the provider name, prefixed by a UINT16 length, to a buffer.
-    // The string in the buffer should be null terminated.
-    // See https://docs.microsoft.com/en-us/windows/win32/etw/provider-traits
-    size_t traits_bytes = sizeof(UINT16) + name.size() + 1;
-    traits.resize(traits_bytes, 0x00);  // Trailing byte will already be null
-    *reinterpret_cast<UINT16*>(traits.data()) = traits_bytes;
-    name.copy(traits.data() + sizeof(UINT16), name.size(), 0);
-  }
-
-  ~EtwEvents() {
-    EventUnregister(reg_handle);
-  }
+// GCC/Clang supported builtin for branch hints
+#if defined(__GNUC__)
+#define LIKELY(condition) (__builtin_expect(!!(condition), 1))
+#else
+#define LIKELY(condition) (condition)
+#endif
 
   // For use by this class before calling EventWrite
   bool IsEventEnabled(const EVENT_DESCRIPTOR* pEventDesc) {
@@ -85,6 +64,8 @@ class EtwEvents {
     return (level <= this->current_level) &&
            (keywords == 0 || ((keywords & this->current_keywords) != 0));
   }
+
+#undef LIKELY
 
   void SetMetaDescriptors(EVENT_DATA_DESCRIPTOR* pDesc, const void* pMetadata,
                           size_t size) {
@@ -107,7 +88,7 @@ class EtwEvents {
   template <typename T, typename... Ts>
   void SetFieldDescriptors(PEVENT_DATA_DESCRIPTOR pFields, const T& val,
                            const Ts&... rest) {
-    EventDataDescCreate(pFields, &val, sizeof val);
+    EventDataDescCreate(pFields, &val, sizeof(val));
     SetFieldDescriptors(++pFields, rest...);
   }
 
@@ -163,8 +144,39 @@ class EtwEvents {
     }
   }
 
-  // Here temporarily to manipulate for testing. Make private after.
+  // TODO: Here temporarily to manipulate for testing. Make private after.
   bool is_enabled;
+
+protected:
+  // All creation/deletion should be via derived classes
+  EtwEvents(const GUID& provider_guid, const std::string& provider_name)
+      : is_enabled(false),
+        provider(provider_guid),
+        name(provider_name),
+        reg_handle(0),
+        current_level(0),
+        current_keywords(0) {
+    ULONG result =
+        EventRegister(&provider, EtwEvents::EnableCallback, this, &reg_handle);
+    if (result != ERROR_SUCCESS) {
+      // Note: Fail silenty here, rather than throw. Tracing is typically not
+      // critical, and this means no exception support is needed.
+      reg_handle = 0;
+      return;
+    }
+
+    // Copy the provider name, prefixed by a UINT16 length, to a buffer.
+    // The string in the buffer should be null terminated.
+    // See https://docs.microsoft.com/en-us/windows/win32/etw/provider-traits
+    size_t traits_bytes = sizeof(UINT16) + name.size() + 1;
+    traits.resize(traits_bytes, '\0');  // Trailing byte will already be null
+    *reinterpret_cast<UINT16*>(traits.data()) = traits_bytes;
+    name.copy(traits.data() + sizeof(UINT16), name.size(), 0);
+  }
+
+  ~EtwEvents() {
+    if (reg_handle != 0) EventUnregister(reg_handle);
+  }
 
  private:
   const GUID provider;
@@ -186,7 +198,5 @@ constexpr auto EventDescriptor(USHORT id, UCHAR level = 0,
                           task,
                           keyword};
 }
-
-#undef LIKELY
 
 }  // namespace etw

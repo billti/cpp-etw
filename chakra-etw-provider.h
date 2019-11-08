@@ -8,7 +8,7 @@
 
 #include "./etw-provider.h"
 
-namespace example {
+namespace chakra {
 
 using etw::EtwProvider;
 using etw::EventDescriptor;
@@ -20,78 +20,112 @@ Note: Below should be run from an admin prompt.
 
 For simple testing, use "logman" to create a trace for this provider via:
 
-  logman create trace -n example -o example.etl -p {f0c59bc0-7da6-58c1-b1b0-e97dd10ac324}
+  logman create trace -n chakra -o chakra.etl -p {57277741-3638-4A4B-BDBA-0AC6E45DA56C}
 
 After the provider GUID, you can optionally specificy keywords and level, e.g.
 
-  -p {f0c59bc0-7da6-58c1-b1b0-e97dd10ac324} 0xBEEF 0x05
+  -p {57277741-3638-4A4B-BDBA-0AC6E45DA56C} 0xBEEF 0x05
 
 To capture events, start/stop the trace via:
 
-  logman start example
-  logman stop example
+  logman start chakra
+  logman stop chakra
 
 When finished recording, remove the configured trace via:
 
-  logman delete example
+  logman delete chakra
 
 Alternatively, use a tool such as PerfView or WPR to configure and record
 traces.
 */
 
-// {f0c59bc0-7da6-58c1-b1b0-e97dd10ac324}
-constexpr GUID example_provider_guid = {
-    0xf0c59bc0,
-    0x7da6,
-    0x58c1,
-    {0xb1, 0xb0, 0xe9, 0x7d, 0xd1, 0x0a, 0xc3, 0x24}};
-constexpr char example_provider_name[] = "example";
+// {57277741-3638-4A4B-BDBA-0AC6E45DA56C}
+constexpr GUID chakra_provider_guid = {0x57277741, 0x3638, 0x4A4B,
+  {0xBD, 0xBA, 0x0A, 0xC6, 0xE4, 0x5D, 0xA5, 0x6C}};
+constexpr char chakra_provider_name[] = "Microsoft-JScript";
 
-class ExampleEtwProvider : public EtwProvider {
+class ChakraEtwProvider : public EtwProvider {
  public:
-  static ExampleEtwProvider& GetProvider();
-  void Initialized();
-  void StartSort(int element_count);
-  void StopSort();
-  void Finished(int total_elements);
-  void Log3Fields(int val, const std::string& msg, void* addr);
+  static ChakraEtwProvider& GetProvider();
+
+  void SourceLoad(
+    uint64_t source_id,
+    void *script_context_id,
+    uint32_t source_flags,
+    const std::wstring& url);
+
+  void MethodLoad(
+    void *script_context_id,
+    void *method_start_address,
+    uint64_t method_size,
+    uint32_t method_id,
+    uint16_t method_flags,
+    uint16_t method_address_range_id,
+    uint64_t source_id,
+    uint32_t line,
+    uint32_t column,
+    const std::wstring& method_name);
+
+  // TODO(billti) SourceUnload & MethodUnload
 
  private:
-  ExampleEtwProvider();
+  ChakraEtwProvider();
 };
 
-// For minimal overhead in instrumented code, make the functions inline to avoid
-// a call.
-inline void ExampleEtwProvider::Initialized() {
-  constexpr static auto event_desc = EventDescriptor(101, etw::kLevelInfo);
-  constexpr static auto event_meta = EventMetadata("Initialized");
+inline void ChakraEtwProvider::SourceLoad(
+    uint64_t source_id,
+    void *script_context_id,
+    uint32_t source_flags,
+    const std::wstring& url) {
+  constexpr static auto event_desc = EventDescriptor(
+    41,  // EventId
+    etw::kLevelInfo,
+    1,   // JScriptRuntimeKeyword
+    12,  // SourceLoadOpcode
+    2);  // ScriptContextRuntimeTask
+  constexpr static auto event_meta = EventMetadata("SourceLoad",
+      Field("SourceID", etw::kTypeUInt64),
+      Field("ScriptContextID", etw::kTypePointer),
+      Field("SourceFlags", etw::kTypeUInt32),
+      Field("Url", etw::kTypeUnicodeStr));
 
-  LogEventData(&event_desc, &event_meta);
+  LogEventData(&event_desc, &event_meta,
+      source_id, script_context_id, source_flags, url);
 }
 
-inline void ExampleEtwProvider::StartSort(int element_count) {
-  constexpr static auto event_desc =
-      EventDescriptor(102, etw::kLevelInfo, 0 /*keyword*/, etw::kOpCodeStart);
-  constexpr static auto event_meta =
-      EventMetadata("StartSort", Field("element_count", etw::kTypeInt32));
+inline void ChakraEtwProvider::MethodLoad(
+    void *script_context_id,
+    void *method_start_address,
+    uint64_t method_size,
+    uint32_t method_id,
+    uint16_t method_flags,
+    uint16_t method_address_range_id,
+    uint64_t source_id,
+    uint32_t line,
+    uint32_t column,
+    const std::wstring& method_name) {
+  constexpr static auto event_desc = EventDescriptor(
+    9,   // EventId
+    etw::kLevelInfo,
+    1,   // JScriptRuntimeKeyword
+    10,  // MethodLoadOpcode
+    1);  // MethodRuntimeTask
+  constexpr static auto event_meta = EventMetadata("MethodLoad",
+      Field("ScriptContextID", etw::kTypePointer),
+      Field("MethodStartAddress", etw::kTypePointer),
+      Field("MethodSize", etw::kTypeUInt64),
+      Field("MethodID", etw::kTypeUInt32),
+      Field("MethodFlags", etw::kTypeUInt16),
+      Field("MethodAddressRangeID", etw::kTypeUInt16),
+      Field("SourceID", etw::kTypeUInt64),
+      Field("Line", etw::kTypeUInt32),
+      Field("Column", etw::kTypeUInt32),
+      Field("MethodName", etw::kTypeUnicodeStr));
 
-  LogEventData(&event_desc, &event_meta, element_count);
+  LogEventData(&event_desc, &event_meta,
+      script_context_id, method_start_address, method_size, method_id,
+      method_flags, method_address_range_id, source_id,
+      line, column, method_name);
 }
 
-inline void ExampleEtwProvider::StopSort() {
-  constexpr static auto event_desc =
-      EventDescriptor(103, etw::kLevelInfo, 0, etw::kOpCodeStop);
-  constexpr static auto event_meta = EventMetadata("StopSort");
-
-  LogEventData(&event_desc, &event_meta);
-}
-
-inline void ExampleEtwProvider::Finished(int total_elements) {
-  constexpr static auto event_desc = EventDescriptor(104, etw::kLevelInfo);
-  constexpr static auto event_meta =
-      EventMetadata("Finished", Field("element_count", etw::kTypeInt32));
-
-  LogEventData(&event_desc, &event_meta, total_elements);
-}
-
-}  // namespace example
+}  // namespace chakra

@@ -102,9 +102,6 @@ cmake --build ./build
 
 - ETW overview: <https://blogs.msdn.microsoft.com/dcook/2015/09/30/etw-overview/>
 
-
 ## TODO
 
-- Not all field data types have been implemented yet.
 - Add support for activities.
-- Add support for unregistering the provider.

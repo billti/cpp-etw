@@ -9,7 +9,7 @@
 
 namespace {
 
-example::ExampleEtwProvider* example_etw_provider = nullptr;
+chakra::ChakraEtwProvider* chakra_etw_provider = nullptr;
 int total_elements = 0;
 
 void PrintArray(int* p_start, int count) {
@@ -25,7 +25,7 @@ int64_t SortArray() {
   QueryPerformanceFrequency(&frequency);
   QueryPerformanceCounter(&starting_time);
 
-  example_etw_provider->Initialized();
+  //chakra_etw_provider->Initialized();
 
   for (int i = 0; i < 10000; ++i) {
     // Returns a value between 0 and RAND_MAX (0x7fff i.e. 32767)
@@ -39,7 +39,7 @@ int64_t SortArray() {
       *(p_elems + j) = rand(); // NOLINT
     }
 
-    example_etw_provider->StartSort(r);
+    chakra_etw_provider->SourceLoad(1, nullptr, 0, L"http://billti.dev/");
 
     qsort(p_elems, r, sizeof(int), [](void const* a, void const* b) -> int {
       int _a = *(static_cast<const int*>(a));
@@ -48,12 +48,12 @@ int64_t SortArray() {
       return _a > _b ? 1 : -1;
     });
 
-    example_etw_provider->StopSort();
+    chakra_etw_provider->MethodLoad(nullptr, nullptr, 42, 1, 0, 1, 1, 55, 80, L"DoWork");
 
     delete[] p_elems;
   }
 
-  example_etw_provider->Finished(total_elements);
+  //chakra_etw_provider->Finished(total_elements);
 
   QueryPerformanceCounter(&ending_time);
   elapsed_microseconds.QuadPart = ending_time.QuadPart - starting_time.QuadPart;
@@ -67,8 +67,8 @@ int64_t SortArray() {
 }  // namespace
 
 int main() {
-  example_etw_provider = &example::ExampleEtwProvider::GetProvider();
-  if (example_etw_provider->enabled() == false) {
+  chakra_etw_provider = &chakra::ChakraEtwProvider::GetProvider();
+  if (chakra_etw_provider->enabled() == false) {
     printf("Enable the provider before running the tests");
     return -1;
   }
@@ -80,13 +80,13 @@ int main() {
     // Constant seed to ensure the same work on each run
     srand(51);
     total_elements = 0;
-    example_etw_provider->set_enabled(true);
+    chakra_etw_provider->set_enabled(true);
     duration = SortArray();
     printf("%8d  ", static_cast<int>(duration));
 
     srand(51);
     total_elements = 0;
-    example_etw_provider->set_enabled(false);
+    chakra_etw_provider->set_enabled(false);
     duration = SortArray();
     printf("%8d\n", static_cast<int>(duration));
   }

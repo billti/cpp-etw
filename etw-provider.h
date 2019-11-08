@@ -50,11 +50,23 @@ const UCHAR kOpCodeStart = 1;
 const UCHAR kOpCodeStop = 2;
 
 // See "enum TlgIn_t" in <TraceLoggingProvider.h>
-const UCHAR kTypeAnsiStr = 2;
-const UCHAR kTypeInt8 = 3;
-const UCHAR kTypeInt32 = 7;
-const UCHAR kTypeDouble = 12;
-const UCHAR kTypePointer = 21;
+const UCHAR kTypeUnicodeStr = 1;  // WCHARs (wchar_t on Windows)
+const UCHAR kTypeAnsiStr    = 2;  // CHARs  (char on Windows)
+const UCHAR kTypeInt8       = 3;
+const UCHAR kTypeUInt8      = 4;
+const UCHAR kTypeInt16      = 5;
+const UCHAR kTypeUInt16     = 6;
+const UCHAR kTypeInt32      = 7;
+const UCHAR kTypeUInt32     = 8;
+const UCHAR kTypeInt64      = 9;
+const UCHAR kTypeUInt64     = 10;
+const UCHAR kTypeFloat      = 11;
+const UCHAR kTypeDouble     = 12;
+const UCHAR kTypeBool32     = 13;
+
+const UCHAR kTypeHexInt32 = 20;
+const UCHAR kTypeHexInt64 = 21;
+const UCHAR kTypePointer = (sizeof(void*) == 8) ? kTypeHexInt64 : kTypeHexInt32;
 
 // All "manifest-free" events should go to channel 11 by default
 const UCHAR kManifestFreeChannel = 11;
@@ -139,6 +151,14 @@ class EtwProvider {
                            const std::string& value, const Ts&... rest) {
     EventDataDescCreate(data_descriptors, value.data(),
                         static_cast<ULONG>(value.size() + 1));
+    SetFieldDescriptors(++data_descriptors, rest...);
+  }
+
+  template <typename... Ts>
+  void SetFieldDescriptors(EVENT_DATA_DESCRIPTOR *data_descriptors,
+                           const std::wstring& value, const Ts&... rest) {
+    EventDataDescCreate(data_descriptors, value.data(),
+                        static_cast<ULONG>(value.size() * 2 + 2));
     SetFieldDescriptors(++data_descriptors, rest...);
   }
 
